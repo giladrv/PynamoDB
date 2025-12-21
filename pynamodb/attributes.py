@@ -110,6 +110,7 @@ class Attribute(Generic[_T]):
         default: Optional[Union[_T, Callable[..., _T]]] = None,
         default_for_new: Optional[Union[Any, Callable[..., _T]]] = None,
         attr_name: Optional[str] = None,
+        unique = None,
     ) -> None:
         if default is not None and default_for_new is not None:
             raise ValueError("An attribute cannot have both default and default_for_new parameters")
@@ -133,6 +134,8 @@ class Attribute(Generic[_T]):
 
         # __set_name__ will ensure this is a string
         self.attr_path: List[str] = [attr_name]  # type: ignore
+
+        self.unique = unique
 
     @property
     def attr_name(self) -> str:
@@ -770,6 +773,45 @@ class NumberSetAttribute(Attribute[Set[float]]):
         return {json.loads(v) for v in value}
 
 
+class IntAttribute(Attribute[int]):
+    """
+    A number attribute
+    """
+    attr_type = NUMBER
+
+    def serialize(self, value):
+        """
+        Encode numbers as JSON
+        """
+        return json.dumps(value)
+
+    def deserialize(self, value):
+        """
+        Decode numbers from JSON
+        """
+        return int(json.loads(value))
+
+
+class IntSetAttribute(Attribute[Set[int]]):
+    """
+    A number set attribute
+    """
+    attr_type = NUMBER_SET
+    null = True
+
+    def serialize(self, value):
+        """
+        Encodes a set of numbers as a JSON list. Encodes empty sets as "None".
+        """
+        return [json.dumps(v) for v in value] or None
+
+    def deserialize(self, value):
+        """
+        Returns a set from a JSON list of numbers.
+        """
+        return {int(json.loads(v)) for v in value}
+
+
 class VersionAttribute(NumberAttribute):
     """
     A number attribute that implements :ref:`optimistic locking <optimistic_locking>`.
@@ -800,6 +842,19 @@ class VersionAttribute(NumberAttribute):
         Decode numbers from JSON and cast to int.
         """
         return int(super().deserialize(value))
+
+
+class UTCDatetimeIntAttribute(Attribute[datetime]):
+
+    attr_type = NUMBER
+
+    def serialize(self, value):
+        if value is None:
+            return None
+        return json.dumps(value.timestamp())
+
+    def deserialize(self, value):
+        return datetime.fromtimestamp(json.loads(value), tz = timezone.utc)
 
 
 class TTLAttribute(Attribute[datetime]):
