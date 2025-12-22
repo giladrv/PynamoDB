@@ -773,43 +773,14 @@ class NumberSetAttribute(Attribute[Set[float]]):
         return {json.loads(v) for v in value}
 
 
-class IntAttribute(Attribute[int]):
-    """
-    A number attribute
-    """
-    attr_type = NUMBER
-
-    def serialize(self, value):
-        """
-        Encode numbers as JSON
-        """
-        return json.dumps(value)
-
+class IntAttribute(NumberAttribute[int]):
     def deserialize(self, value):
-        """
-        Decode numbers from JSON
-        """
         return int(json.loads(value))
 
 
-class IntSetAttribute(Attribute[Set[int]]):
-    """
-    A number set attribute
-    """
-    attr_type = NUMBER_SET
-    null = True
-
-    def serialize(self, value):
-        """
-        Encodes a set of numbers as a JSON list. Encodes empty sets as "None".
-        """
-        return [json.dumps(v) for v in value] or None
-
+class IntSetAttribute(NumberSetAttribute[Set[int]]):
     def deserialize(self, value):
-        """
-        Returns a set from a JSON list of numbers.
-        """
-        return {int(json.loads(v)) for v in value}
+        return { int(json.loads(v)) for v in value }
 
 
 class VersionAttribute(NumberAttribute):
@@ -848,10 +819,11 @@ class UTCDatetimeIntAttribute(Attribute[datetime]):
 
     attr_type = NUMBER
 
-    def serialize(self, value):
+    def serialize(self, value: datetime | None):
         if value is None:
             return None
-        return json.dumps(value.timestamp())
+        value = value.replace(tzinfo = timezone.utc)
+        return json.dumps(round(value.timestamp()))
 
     def deserialize(self, value):
         return datetime.fromtimestamp(json.loads(value), tz = timezone.utc)
