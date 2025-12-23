@@ -696,7 +696,7 @@ class UnicodeSetAttribute(Attribute[Set[str]]):
         return set(value)
 
 
-class EnumStrAttribute[T: Enum](Attribute[Enum]):
+class EnumStrAttribute[T: Enum](Attribute[T]):
     attr_type = STRING
     def serialize(self, value: T):
         return value.value
@@ -704,7 +704,7 @@ class EnumStrAttribute[T: Enum](Attribute[Enum]):
         return T(value)
 
 
-class EnumIntAttribute[T: Enum](Attribute[Enum]):
+class EnumIntAttribute[T: Enum](Attribute[T]):
     attr_type = NUMBER
     def serialize(self, value: T):
         return str(value.value)
