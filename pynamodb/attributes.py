@@ -50,6 +50,7 @@ if TYPE_CHECKING:
 
 
 _T = TypeVar('_T')
+_NT = TypeVar('_NT', bound=float|int|datetime, default=float)
 _KT = TypeVar('_KT', bound=str)
 _VT = TypeVar('_VT')
 _MT = TypeVar('_MT', bound='MapAttribute')
@@ -734,7 +735,7 @@ class BooleanAttribute(Attribute[bool]):
         return bool(value)
 
 
-class NumberAttribute(Attribute[float]):
+class NumberAttribute(Attribute[_NT]):
     """
     A number attribute
     """
@@ -753,7 +754,7 @@ class NumberAttribute(Attribute[float]):
         return json.loads(value)
 
 
-class NumberSetAttribute(Attribute[Set[float]]):
+class NumberSetAttribute(Attribute[Set[_NT]]):
     """
     A number set attribute
     """
@@ -815,16 +816,12 @@ class VersionAttribute(NumberAttribute):
         return int(super().deserialize(value))
 
 
-class UTCDatetimeIntAttribute(Attribute[datetime]):
-
-    attr_type = NUMBER
-
+class UTCDatetimeIntAttribute(NumberAttribute[datetime]):
     def serialize(self, value: datetime | None):
         if value is None:
             return None
         value = value.replace(tzinfo = timezone.utc)
         return json.dumps(round(value.timestamp()))
-
     def deserialize(self, value):
         return datetime.fromtimestamp(json.loads(value), tz = timezone.utc)
 
