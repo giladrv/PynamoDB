@@ -13,6 +13,7 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 from decimal import Decimal
+from enum import Enum
 from inspect import getfullargspec
 from inspect import getmembers
 from typing import Any, Callable, Dict, Generic, List, Mapping, Optional, TypeVar, Type, Union, Set, overload, Iterable
@@ -56,6 +57,7 @@ _KT = TypeVar('_KT', bound=str)
 _VT = TypeVar('_VT')
 _MT = TypeVar('_MT', bound='MapAttribute')
 _ACT = TypeVar('_ACT', bound = 'AttributeContainer')
+_ET = TypeVar('_ET', bound=Enum)
 
 _A = TypeVar('_A', bound='Attribute')
 
@@ -692,6 +694,22 @@ class UnicodeSetAttribute(Attribute[Set[str]]):
         Returns a set from a list of strings.
         """
         return set(value)
+
+
+class EnumStrAttribute[T: Enum](Attribute[Enum]):
+    attr_type = STRING
+    def serialize(self, value: T):
+        return value.value
+    def deserialize(self, value: str):
+        return T(value)
+
+
+class EnumIntAttribute[T: Enum](Attribute[Enum]):
+    attr_type = NUMBER
+    def serialize(self, value: T):
+        return str(value.value)
+    def deserialize(self, value: str):
+        return T(int(value))
 
 
 class JSONAttribute(Attribute[Any]):
