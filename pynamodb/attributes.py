@@ -698,18 +698,24 @@ class UnicodeSetAttribute(Attribute[Set[str]]):
 
 class EnumStrAttribute[T: Enum](Attribute[T]):
     attr_type = STRING
+    def __init__(self, enum_cls: Type[Enum], **kwargs):
+        super().__init__(**kwargs)
+        self._enum_cls = enum_cls
     def serialize(self, value: T):
         return value.value
     def deserialize(self, value: str):
-        return T(value)
+        return self._enum_cls(value)
 
 
 class EnumIntAttribute[T: Enum](Attribute[T]):
     attr_type = NUMBER
+    def __init__(self, enum_cls: Type[Enum], **kwargs):
+        super().__init__(**kwargs)
+        self._enum_cls = enum_cls
     def serialize(self, value: T):
         return str(value.value)
     def deserialize(self, value: str):
-        return T(int(value))
+        return self._enum_cls(int(value))
 
 
 class JSONAttribute(Attribute[Any]):
