@@ -12,6 +12,7 @@ from copy import deepcopy
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
+from decimal import Decimal
 from inspect import getfullargspec
 from inspect import getmembers
 from typing import Any, Callable, Dict, Generic, List, Mapping, Optional, TypeVar, Type, Union, Set, overload, Iterable
@@ -775,13 +776,31 @@ class NumberSetAttribute(Attribute[Set[_NT]]):
 
 
 class IntAttribute(NumberAttribute[int]):
+    def serialize(self, value):
+        return str(value)
     def deserialize(self, value):
-        return int(json.loads(value))
+        return int(value)
 
 
 class IntSetAttribute(NumberSetAttribute[Set[int]]):
+    def serialize(self, value):
+        return [ str(v) for v in value ] or None
     def deserialize(self, value):
-        return { int(json.loads(v)) for v in value }
+        return { int(v) for v in value }
+
+
+class DecimalAttribute(NumberAttribute[Decimal]):
+    def serialize(self, value):
+        return str(Decimal(value).normalize())
+    def deserialize(self, value):
+        return Decimal(value)
+
+
+class DecimalSetAttribute(NumberSetAttribute[Set[Decimal]]):
+    def serialize(self, value):
+        return [ str(Decimal(v).normalize()) for v in value ] or None
+    def deserialize(self, value):
+        return { Decimal(v) for v in value }
 
 
 class VersionAttribute(NumberAttribute):
