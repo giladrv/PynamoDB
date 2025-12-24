@@ -4,21 +4,43 @@ from pynamodb.attributes import Attribute
 from pynamodb.attributes import AttributeContainer
 from pynamodb.attributes import BinaryAttribute
 from pynamodb.attributes import BinarySetAttribute
+from pynamodb.attributes import DecimalAttribute
+from pynamodb.attributes import DecimalSetAttribute
 from pynamodb.attributes import DiscriminatorAttribute
 from pynamodb.attributes import DynamicMapAttribute
+from pynamodb.attributes import EnumIntAttribute
+from pynamodb.attributes import EnumStrAttribute
+from pynamodb.attributes import IntAttribute
+from pynamodb.attributes import IntSetAttribute
 from pynamodb.attributes import JSONAttribute
 from pynamodb.attributes import ListAttribute
 from pynamodb.attributes import MapAttribute
 from pynamodb.attributes import TTLAttribute
 from pynamodb.attributes import UTCDateTimeAttribute
+from pynamodb.attributes import UTCDatetimeIntAttribute
 
 from pynamodb.models import Model
 
-SERIALIZABLE_TYPES = (BinaryAttribute, BinarySetAttribute, DiscriminatorAttribute, JSONAttribute)
+SERIALIZABLE_TYPES = (
+    BinaryAttribute,
+    BinarySetAttribute,
+    DecimalAttribute,
+    DecimalSetAttribute,
+    DiscriminatorAttribute,
+    EnumIntAttribute,
+    EnumStrAttribute,
+    IntAttribute,
+    IntSetAttribute,
+    JSONAttribute,
+)
+ISO_DATETIME_TYPES = (
+    UTCDateTimeAttribute,
+    UTCDatetimeIntAttribute,
+)
 ENCODER_MAPPING = {
     SERIALIZABLE_TYPES: lambda attr, data: attr.serialize(data),
     TTLAttribute: lambda _, data: data.timestamp(),
-    UTCDateTimeAttribute: lambda _, data: data.isoformat(),
+    ISO_DATETIME_TYPES: lambda _, data: data.isoformat(),
 }
 
 class PrimitiveAttributeEncoder:

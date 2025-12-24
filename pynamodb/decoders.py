@@ -5,8 +5,14 @@ from pynamodb.attributes import Attribute
 from pynamodb.attributes import AttributeContainer
 from pynamodb.attributes import BinaryAttribute
 from pynamodb.attributes import BinarySetAttribute
+from pynamodb.attributes import DecimalAttribute
+from pynamodb.attributes import DecimalSetAttribute
 from pynamodb.attributes import DiscriminatorAttribute
 from pynamodb.attributes import DynamicMapAttribute
+from pynamodb.attributes import EnumIntAttribute
+from pynamodb.attributes import EnumStrAttribute
+from pynamodb.attributes import IntAttribute
+from pynamodb.attributes import IntSetAttribute
 from pynamodb.attributes import JSONAttribute
 from pynamodb.attributes import ListAttribute
 from pynamodb.attributes import MapAttribute
@@ -14,14 +20,32 @@ from pynamodb.attributes import NumberSetAttribute
 from pynamodb.attributes import TTLAttribute
 from pynamodb.attributes import UnicodeSetAttribute
 from pynamodb.attributes import UTCDateTimeAttribute
+from pynamodb.attributes import UTCDatetimeIntAttribute
 
 from pynamodb.models import Model
 
+DESERIALIZABLE_TYPES = (
+    BinaryAttribute,
+    BinarySetAttribute,
+    DecimalAttribute,
+    DecimalSetAttribute,
+    EnumIntAttribute,
+    EnumStrAttribute,
+    JSONAttribute,
+)
+SET_TYPES = (
+    NumberSetAttribute,
+    UnicodeSetAttribute,
+)
+ISO_DATETIME_TYPES = (
+    UTCDateTimeAttribute,
+    UTCDatetimeIntAttribute,
+)
 DECODER_MAPPING = {
-    (BinaryAttribute, BinarySetAttribute, JSONAttribute): lambda attr, data: attr.deserialize(data),
-    (NumberSetAttribute, UnicodeSetAttribute): lambda _, data: set(data),
+    DESERIALIZABLE_TYPES: lambda attr, data: attr.deserialize(data),
+    SET_TYPES: lambda _, data: set(data),
     TTLAttribute: lambda _, data: datetime.fromtimestamp(data, tz=timezone.utc),
-    UTCDateTimeAttribute: lambda _, data: datetime.fromisoformat(data),
+    ISO_DATETIME_TYPES: lambda _, data: datetime.fromisoformat(data),
 }
 
 class PrimitiveAttributeDecoder:
