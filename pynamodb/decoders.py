@@ -8,6 +8,7 @@ from pynamodb.attributes import BinarySetAttribute
 from pynamodb.attributes import DecimalAttribute
 from pynamodb.attributes import DecimalSetAttribute
 from pynamodb.attributes import DiscriminatorAttribute
+from pynamodb.attributes import DynamicKeyMapAttribute
 from pynamodb.attributes import DynamicMapAttribute
 from pynamodb.attributes import EnumIntAttribute
 from pynamodb.attributes import EnumStrAttribute
@@ -74,6 +75,8 @@ class Decoder:
     def decode_attribute(self, attr: Attribute, data):
         if isinstance(attr, ListAttribute):
             return self.decode_list(attr, data)
+        elif isinstance(attr, DynamicKeyMapAttribute):
+            return self.decode_dynamic_key_map(attr, data)
         elif isinstance(attr, MapAttribute):
             return self.decode_map(attr, data)
         else:
@@ -103,6 +106,12 @@ class Decoder:
             else:
                 decoded[name] = value
         return cls(**decoded)
+
+    def decode_dynamic_key_map(self, attr: DynamicKeyMapAttribute, data: Dict[str, Any]):
+        if attr.value_type:
+            value_attr = attr._get_value_attribute()
+            return {name: self.decode_attribute(value_attr, value) for name, value in data.items()}
+        return data
 
     def polymorphisize(self, instance_type: Type[AC], data: Dict[str, Any]) -> Type[AC]:
         for name, attr in instance_type.get_attributes().items():

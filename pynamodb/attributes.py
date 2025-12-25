@@ -457,6 +457,14 @@ class AttributeContainer(metaclass=AttributeContainerMeta):
                     else:
                         for element in attribute_value[LIST]:
                             AttributeContainer._coerce_attribute_type(attr.element_type.attr_type, element)
+                if isinstance(attr, DynamicKeyMapAttribute) and attr.value_type and MAP in attribute_value:
+                    if issubclass(attr.value_type, AttributeContainer):
+                        for value in attribute_value[MAP].values():
+                            if MAP in value:
+                                attr.value_type._update_attribute_types(value[MAP])
+                    else:
+                        for value in attribute_value[MAP].values():
+                            AttributeContainer._coerce_attribute_type(attr.value_type.attr_type, value)
                 if isinstance(attr, AttributeContainer) and MAP in attribute_value:
                     attr._update_attribute_types(attribute_value[MAP])
 
@@ -1331,6 +1339,99 @@ class DynamicMapAttribute(MapAttribute):
     def is_raw(cls):
         # All subclasses of DynamicMapAttribute should be treated like "raw" map attributes.
         return True
+
+
+class DynamicKeyMapAttribute(Generic[_VT], Attribute[Mapping[str, _VT]]):
+    """
+    A map attribute that allows arbitrary string keys with a fixed value schema, similar to
+    :class:`~pynamodb.attributes.ListAttribute`'s ``of`` parameter.
+    """
+
+    attr_type = MAP
+    value_type: Optional[Type[Attribute]] = None
+
+    def __init__(
+        self,
+        hash_key: bool = False,
+        range_key: bool = False,
+        null: Optional[bool] = None,
+        default: Optional[Union[Any, Callable[..., Any]]] = None,
+        attr_name: Optional[str] = None,
+        of: Optional[Type[_VT]] = None,
+    ) -> None:
+        super().__init__(
+            hash_key=hash_key,
+            range_key=range_key,
+            null=null,
+            default=default,
+            attr_name=attr_name,
+        )
+        if of:
+            if not issubclass(of, Attribute):
+                raise ValueError("'of' must be a subclass of Attribute")
+            self.value_type = of
+
+    def serialize(self, values: Mapping[str, Any], *, null_check: bool = True):
+        if not isinstance(values, Mapping):
+            raise TypeError("Map values must be a mapping")
+
+        rval: Dict[str, Dict[str, Any]] = {}
+        for key, value in values.items():
+            if not isinstance(key, str):
+                raise TypeError("Map keys must be strings")
+            attr = self._get_serialize_class(value)
+            if self.value_type and value is not None and not isinstance(attr, self.value_type):
+                raise ValueError("Map values must be of type: {}".format(self.value_type.__name__))
+            attr_type = attr.attr_type
+            try:
+                if isinstance(attr, (ListAttribute, MapAttribute)):
+                    attr_value = attr.serialize(value, null_check=null_check)
+                else:
+                    attr_value = attr.serialize(value)
+            except AttributeNullError as e:
+                e.prepend_path(f'[{key!r}]')
+                raise
+            if attr_value is None:
+                attr_type = NULL
+                attr_value = True
+            rval[key] = {attr_type: attr_value}
+        return rval
+
+    def deserialize(self, values: Mapping[str, Dict[str, Any]]):
+        if self.value_type:
+            value_attr = self._get_value_attribute()
+            deserialized: Dict[str, Any] = {}
+            for key, attribute_value in values.items():
+                value = None
+                if NULL not in attribute_value:
+                    value_attr.attr_name = f'{self.attr_name}[{key}]' if self.attr_name else f'[{key}]'
+                    value = value_attr.deserialize(value_attr.get_value(attribute_value))
+                deserialized[key] = value
+            return deserialized
+
+        return {
+            k: DESERIALIZE_CLASS_MAP[attr_type].deserialize(attr_value)
+            for k, v in values.items() for attr_type, attr_value in v.items()
+        }
+
+    def _get_serialize_class(self, value: Any) -> Attribute:
+        if value is None:
+            return NullAttribute()
+        if isinstance(value, Attribute):
+            return value
+        if self.value_type:
+            return self._get_value_attribute()
+        return _get_class_for_serialize(value)
+
+    def _get_value_attribute(self) -> Attribute:
+        if not self.value_type:
+            raise TypeError("value_type is undefined")
+        if issubclass(self.value_type, (BinaryAttribute, BinarySetAttribute)):
+            return self.value_type(legacy_encoding=False)
+        value_attr = self.value_type()
+        if isinstance(value_attr, MapAttribute):
+            value_attr._make_attribute()
+        return value_attr
 
 
 def _get_class_for_serialize(value: Any) -> Attribute:

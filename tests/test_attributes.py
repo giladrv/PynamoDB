@@ -15,7 +15,7 @@ from unittest.mock import patch, call
 import pytest
 
 from pynamodb.attributes import (
-    BinarySetAttribute, BinaryAttribute, DynamicMapAttribute, NumberSetAttribute, NumberAttribute,
+    BinarySetAttribute, BinaryAttribute, DynamicKeyMapAttribute, DynamicMapAttribute, NumberSetAttribute, NumberAttribute,
     UnicodeAttribute, UnicodeSetAttribute, UTCDateTimeAttribute, BooleanAttribute, MapAttribute, NullAttribute,
     ListAttribute, JSONAttribute, TTLAttribute, VersionAttribute, Attribute)
 from pynamodb.constants import (
@@ -961,6 +961,43 @@ class TestDynamicMapAttribute:
         assert test_model.test_map.created_at == datetime(2017, 1, 1, tzinfo=timezone.utc)
         assert test_model.test_map.foo == 'bar'
         assert test_model.test_map.empty is None
+
+
+class TestDynamicKeyMapAttribute:
+
+    def test_roundtrip_typed(self) -> None:
+        attr = DynamicKeyMapAttribute(of=UnicodeAttribute)
+        values = {'foo': 'bar', 'empty': None}
+
+        serialized = attr.serialize(values)
+        assert serialized == {
+            'foo': {'S': 'bar'},
+            'empty': {'NULL': True},
+        }
+        assert attr.deserialize(serialized) == values
+
+    def test_invalid_inputs(self) -> None:
+        attr = DynamicKeyMapAttribute(of=UnicodeAttribute)
+
+        with pytest.raises(TypeError, match="Map keys must be strings"):
+            attr.serialize({1: 'bar'})
+
+        with pytest.raises(ValueError, match='Map values must be of type: UnicodeAttribute'):
+            attr.serialize({'foo': MapAttribute()})
+
+    def test_from_simple_dict_with_binary_values(self) -> None:
+        class BinaryDynamicKeyMapModel(Model):
+            class Meta:
+                table_name = 'BinaryDynamicKeyMapModel'
+
+            key = NumberAttribute(hash_key=True)
+            files = DynamicKeyMapAttribute(of=BinaryAttribute, null=True)
+
+        model = BinaryDynamicKeyMapModel()
+        model.from_simple_dict({'key': 1, 'files': {'example.txt': 'Zm9v'}})
+
+        assert model.files['example.txt'] == b'foo'
+        assert model.to_simple_dict(force=True)['files'] == {'example.txt': 'Zm9v'}
 
 
 class TestListAttribute:

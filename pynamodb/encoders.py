@@ -7,6 +7,7 @@ from pynamodb.attributes import BinarySetAttribute
 from pynamodb.attributes import DecimalAttribute
 from pynamodb.attributes import DecimalSetAttribute
 from pynamodb.attributes import DiscriminatorAttribute
+from pynamodb.attributes import DynamicKeyMapAttribute
 from pynamodb.attributes import DynamicMapAttribute
 from pynamodb.attributes import EnumIntAttribute
 from pynamodb.attributes import EnumStrAttribute
@@ -65,6 +66,8 @@ class Encoder:
     def encode_attribute(self, attr: Attribute, data: Any):
         if isinstance(attr, ListAttribute):
             return self.encode_list(attr, data)
+        elif isinstance(attr, DynamicKeyMapAttribute):
+            return self.encode_dynamic_key_map(attr, data)
         elif isinstance(attr, MapAttribute):
             return self.encode_map(attr, data)
         else:
@@ -91,4 +94,11 @@ class Encoder:
                 encoded[name] = self.encode_attribute(attributes[name], value)
             else:
                 encoded[name] = value
+        return encoded
+
+    def encode_dynamic_key_map(self, attr: DynamicKeyMapAttribute, data: Dict[str, Any]) -> Dict[str, Any]:
+        encoded: Dict[str, Any] = {}
+        for key, value in data.items():
+            value_attr = attr._get_serialize_class(value)
+            encoded[key] = self.encode_attribute(value_attr, value)
         return encoded

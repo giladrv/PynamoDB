@@ -208,3 +208,17 @@ These attributes can then be used inside of Model classes just like any other at
     car = CarInfo(make='Make-A', model='Model-A', year=1975)
     other_car = CarInfo(make='Make-A', model='Model-A', year=1975, seats=3)
 
+``DynamicKeyMapAttribute`` allows arbitrary string keys while enforcing a fixed value schema (similar to ``ListAttribute``'s ``of`` parameter).
+
+.. code-block:: python
+
+    from pynamodb.attributes import DynamicKeyMapAttribute, UnicodeAttribute
+    from pynamodb.models import Model
+
+    class EmailAliases(Model):
+        class Meta:
+            table_name = 'EmailAliases'
+
+        aliases = DynamicKeyMapAttribute(of=UnicodeAttribute)
+
+    aliases = EmailAliases(aliases={'work': 'alice@example.com', 'personal': 'alice@email.com'})
