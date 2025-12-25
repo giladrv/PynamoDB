@@ -29,8 +29,6 @@ SERIALIZABLE_TYPES = (
     DiscriminatorAttribute,
     EnumIntAttribute,
     EnumStrAttribute,
-    IntAttribute,
-    IntSetAttribute,
     JSONAttribute,
 )
 ISO_DATETIME_TYPES = (
