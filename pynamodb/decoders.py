@@ -1,5 +1,6 @@
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, List, Self, Type, TypeVar, Union
 
 from pynamodb.attributes import Attribute
 from pynamodb.attributes import AttributeContainer
@@ -52,6 +53,8 @@ DECODER_MAPPING = {
 class PrimitiveAttributeDecoder:
     @staticmethod
     def decode(attr: Attribute, data):
+        if isinstance(attr, Decodable):
+            return attr.decode(data)
         for types, callable in DECODER_MAPPING.items():
             if isinstance(attr, types):
                 return callable(attr, data)
@@ -59,6 +62,12 @@ class PrimitiveAttributeDecoder:
 
 AC = TypeVar("AC", bound=AttributeContainer)
 M = TypeVar("M", bound=Model)
+
+class Decodable(ABC):
+    @classmethod
+    @abstractmethod
+    def decode(cls: Type[Self], data: Any) -> Any:
+        pass
 
 class Decoder:
     def decode(self, type: Type[M], data: Dict[str, Any]) -> M:

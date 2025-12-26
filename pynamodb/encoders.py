@@ -1,4 +1,5 @@
-from typing import Any, Dict, List
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Self, Type
 
 from pynamodb.attributes import Attribute
 from pynamodb.attributes import AttributeContainer
@@ -45,11 +46,18 @@ ENCODER_MAPPING = {
 class PrimitiveAttributeEncoder:
     @staticmethod
     def encode(attr: Attribute, data):
+        if isinstance(attr, Encodable):
+            return attr.encode(data)
         for types, callable in ENCODER_MAPPING.items():
             if isinstance(attr, types):
                 return callable(attr, data)
         return data
 
+class Encodable(ABC):
+    @classmethod
+    @abstractmethod
+    def encode(cls: Type[Self], data: Any) -> Any:
+        pass
 
 class Encoder:
     def encode(self, instance: Model) -> Dict[str, Any]:
