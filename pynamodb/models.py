@@ -38,6 +38,7 @@ from pynamodb.exceptions import DoesNotExist, TableDoesNotExist, TableError, Inv
 from pynamodb.attributes import (
     AttributeContainer, AttributeContainerMeta, TTLAttribute, VersionAttribute
 )
+from pynamodb.connection.base import Connection
 from pynamodb.connection.table import TableConnection
 from pynamodb.expressions.condition import Condition
 from pynamodb.types import HASH, RANGE
@@ -1034,6 +1035,10 @@ class Model(AttributeContainer, metaclass=MetaModel):
         return item_data, unprocessed_items
 
     @classmethod
+    def _get_base_connection(cls) -> Connection:
+        return None
+
+    @classmethod
     def _get_connection(cls) -> TableConnection:
         """
         Returns a (cached) connection
@@ -1088,7 +1093,8 @@ class Model(AttributeContainer, metaclass=MetaModel):
                                               extra_headers=cls.Meta.extra_headers,
                                               aws_access_key_id=cls.Meta.aws_access_key_id,
                                               aws_secret_access_key=cls.Meta.aws_secret_access_key,
-                                              aws_session_token=cls.Meta.aws_session_token)
+                                              aws_session_token=cls.Meta.aws_session_token,
+                                              connection = cls._get_base_connection())
         return cls._connection
 
     @classmethod

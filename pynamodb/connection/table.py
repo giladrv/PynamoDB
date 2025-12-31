@@ -31,9 +31,13 @@ class TableConnection:
         aws_session_token: Optional[str] = None,
         *,
         meta_table: Optional[MetaTable] = None,
+        connection: Optional[Connection] = None,
     ) -> None:
         self.table_name = table_name
-        self.connection = Connection(region=region,
+        if connection is not None:
+            self.connection = connection
+        else:
+            self.connection = Connection(region=region,
                                      host=host,
                                      connect_timeout_seconds=connect_timeout_seconds,
                                      read_timeout_seconds=read_timeout_seconds,
