@@ -17,7 +17,9 @@ from pynamodb.attributes import IntSetAttribute
 from pynamodb.attributes import JSONAttribute
 from pynamodb.attributes import ListAttribute
 from pynamodb.attributes import MapAttribute
+from pynamodb.attributes import NumberSetAttribute
 from pynamodb.attributes import TTLAttribute
+from pynamodb.attributes import UnicodeSetAttribute
 from pynamodb.attributes import UTCDateTimeAttribute
 from pynamodb.attributes import UTCDatetimeIntAttribute
 
@@ -31,7 +33,10 @@ SERIALIZABLE_TYPES = (
     DiscriminatorAttribute,
     EnumIntAttribute,
     EnumStrAttribute,
+    IntSetAttribute,
     JSONAttribute,
+    NumberSetAttribute,
+    UnicodeSetAttribute,
 )
 ISO_DATETIME_TYPES = (
     UTCDateTimeAttribute,
