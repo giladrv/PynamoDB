@@ -1091,6 +1091,7 @@ class Connection(object):
             )
         operation_kwargs[REQUEST_ITEMS][table_name].update(keys_map)
         try:
+            print(BATCH_GET_ITEM, operation_kwargs)
             return self.dispatch(BATCH_GET_ITEM, operation_kwargs)
         except BOTOCORE_EXCEPTIONS as e:
             raise GetError("Failed to batch get items: {}".format(e), e)

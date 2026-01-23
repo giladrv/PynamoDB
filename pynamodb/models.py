@@ -1027,6 +1027,7 @@ class Model(AttributeContainer, metaclass=MetaModel):
         :param attributes_to_get: A list of attributes to return
         """
         log.debug("Fetching a BatchGetItem page")
+        print(f"Fetching a BatchGetItem page: {keys_to_get} ({attributes_to_get})")
         data = cls._get_connection().batch_get_item(
             keys_to_get, consistent_read=consistent_read, attributes_to_get=attributes_to_get,
         )
