@@ -53,6 +53,7 @@ if TYPE_CHECKING:
 
 _T = TypeVar('_T')
 _NT = TypeVar('_NT', bound=float|int|datetime, default=float)
+_NST = TypeVar('_NST', bound=Set[float]|Set[int]|Set[datetime], default=Set[float])
 _KT = TypeVar('_KT', bound=str)
 _VT = TypeVar('_VT')
 _MT = TypeVar('_MT', bound='MapAttribute')
@@ -787,7 +788,7 @@ class NumberAttribute(Attribute[_NT]):
         return json.loads(value)
 
 
-class NumberSetAttribute(Attribute[Set[_NT]]):
+class NumberSetAttribute(Attribute[_NST]):
     """
     A number set attribute
     """
@@ -821,21 +822,24 @@ class IntSetAttribute(NumberSetAttribute[Set[int]]):
         return { int(v) for v in value }
 
 
-class DecimalAttribute(NumberAttribute[Decimal]):
+class DecimalAttribute(Attribute[Decimal]):
+    attr_type = NUMBER
     def serialize(self, value):
         return str(Decimal(value).normalize())
     def deserialize(self, value):
         return Decimal(value)
 
 
-class DecimalSetAttribute(NumberSetAttribute[Set[Decimal]]):
+class DecimalSetAttribute(Attribute[Set[Decimal]]):
+    attr_type = NUMBER_SET
+    null = True
     def serialize(self, value):
         return [ str(Decimal(v).normalize()) for v in value ] or None
     def deserialize(self, value):
         return { Decimal(v) for v in value }
 
 
-class VersionAttribute(NumberAttribute):
+class VersionAttribute(NumberAttribute[int]):
     """
     A number attribute that implements :ref:`optimistic locking <optimistic_locking>`.
     """
@@ -845,7 +849,7 @@ class VersionAttribute(NumberAttribute):
         """
         Cast assigned value to int.
         """
-        super().__set__(instance, int(value))
+        super().__set__(instance, int(value) if value is not None else None)
 
     def __get__(self, instance, owner):
         """
@@ -871,7 +875,10 @@ class UTCDatetimeIntAttribute(NumberAttribute[datetime]):
     def serialize(self, value: datetime | None):
         if value is None:
             return None
-        value = value.replace(tzinfo = timezone.utc)
+        if value.tzinfo is None:
+            value = value.replace(tzinfo = timezone.utc)
+        else:
+            value = value.astimezone(timezone.utc)
         return json.dumps(round(value.timestamp()))
     def deserialize(self, value):
         return datetime.fromtimestamp(json.loads(value), tz = timezone.utc)
@@ -885,7 +892,11 @@ class TTLAttribute(Attribute[datetime]):
     but always reads as a UTC datetime value.
     """
     attr_type = NUMBER
-
+    
+    @overload
+    def _normalize(self, value: None) -> None: ...
+    @overload
+    def _normalize(self, value: datetime) -> datetime: ...
     def _normalize(self, value):
         """
         Converts value to a UTC datetime
@@ -1564,6 +1575,11 @@ class ListAttribute(Generic[_T], Attribute[List[_T]]):
             return self.element_type()
         return _get_class_for_serialize(value)
 
+    def append1_safe(self, value: _T) -> None:
+        return self.set((self | []).append([value]))
+
+    def prepend1_safe(self, value: _T) -> None:
+        return self.set((self | []).prepend([value]))
 
 DESERIALIZE_CLASS_MAP: Dict[str, Attribute] = {
     BINARY: BinaryAttribute(legacy_encoding=False),
